@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2Zz48L3N2Zz4K" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Demo Page</title>
+	</head>
+	<body>
+		<div id="app">
+			<div id="tx">
+				<div>
+					<h2>Transmission line</h2>
+				</div>
+				<form id="tx-form">
+					<input required type="text" id="tx-input" placeholder="value to send..." />
+					<button type="submit">send</button>
+				</form>
+			</div>
+			<div>
+				<div>
+					<h3>Channel buffer, max 10 elements</h3>
+				</div>
+				<div>
+					<ul id="queue"></ul>
+				</div>
+			</div>
+			<div id="rx">
+				<div>
+					<h2>Receiving line</h2>
+				</div>
+				<form id="rx-form">
+					<button id="rx-submit-button" type="submit">consume</button>
+				</form>
+			</div>
+		</div>
+		<script type="module" src="/src/browser.ts"></script>
+	</body>
+</html>
