@@ -59,7 +59,7 @@ by sharing a single channel among several tasks.
 
 #### Defined in
 
-src/lib/index.ts:192
+[src/lib/index.ts:200](https://github.com/cdellacqua/channel.js/blob/main/src/lib/index.ts#L200)
 
 ___
 
@@ -82,10 +82,12 @@ Receiving end of a channel.
 | `canRead$` | `ReadonlyStore`<`boolean`\> | A store that contains true if there is some data ready to be consumed, the channel is not closed and there are not too many pending `recv` requests. |
 | `closed$` | `ReadonlyStore`<`boolean`\> | A store that contains true if the channel is closed. |
 | `filledInboxSlots$` | `ReadonlyStore`<`number`\> | A store that contains the number of filled slots (from 0 to the channel capacity) in the input buffer or 0 if the channel is closed. |
+| `pendingRecvPromises$` | `ReadonlyStore`<`number`\> | A store that contains the number of currently waiting `recv` promises. |
 | ``get` **canRead**(): `boolean`` | {} | - |
 | ``get` **capacity**(): `number`` | {} | - |
 | ``get` **closed**(): `boolean`` | {} | - |
 | ``get` **filledInboxSlots**(): `number`` | {} | - |
+| ``get` **pendingRecvPromises**(): `number`` | {} | - |
 | `[asyncIterator]` | () => `AsyncIterator`<`T`, `any`, `undefined`\> | Return an async iterator that consumes the channel buffer If the channel buffer is already empty the iterator will not emit any value. |
 | `close` | () => `void` | Close the channel, stopping all pending send/recv requests. |
 | `iter` | () => `AsyncIterator`<`T`, `any`, `undefined`\> | Return an async iterator that consumes the channel buffer If the channel buffer is already empty the iterator will not emit any value. |
@@ -93,7 +95,7 @@ Receiving end of a channel.
 
 #### Defined in
 
-src/lib/index.ts:116
+[src/lib/index.ts:116](https://github.com/cdellacqua/channel.js/blob/main/src/lib/index.ts#L116)
 
 ___
 
@@ -126,7 +128,7 @@ Transmission end of a channel.
 
 #### Defined in
 
-src/lib/index.ts:51
+[src/lib/index.ts:51](https://github.com/cdellacqua/channel.js/blob/main/src/lib/index.ts#L51)
 
 ___
 
@@ -143,7 +145,7 @@ ___
 
 #### Defined in
 
-src/lib/index.ts:207
+[src/lib/index.ts:215](https://github.com/cdellacqua/channel.js/blob/main/src/lib/index.ts#L215)
 
 ## Functions
 
@@ -195,4 +197,4 @@ a [Channel](README.md#channel)
 
 #### Defined in
 
-src/lib/index.ts:244
+[src/lib/index.ts:252](https://github.com/cdellacqua/channel.js/blob/main/src/lib/index.ts#L252)
