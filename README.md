@@ -58,7 +58,8 @@ The `rx` object is a `ChannelRx<T>`, which in turn exposes the following:
   if the channel has been closed, i.e. the `close()` method has been called by either the receiving or transmission end of the channel;
 - `canRead`/`canRead$`, boolean getter and store that can be used to check
   if the channel can be consumed, that is its buffer is not empty and the channel is not closed;
-- `filledInboxSlots`/`filledInboxSlots$`, number getter and store that can be used to check how much space is filled in the transmission buffer.
+- `filledInboxSlots`/`filledInboxSlots$`, number getter and store that can be used to check how much space is filled in the transmission buffer;
+- `pendingRecvPromises`/`pendingRecvPromises$`, number getter and store that can be used to check how many `recv` calls are pending.
 
 This library provides a function called `makeChannel` to create `Channel<T>` objects.
 

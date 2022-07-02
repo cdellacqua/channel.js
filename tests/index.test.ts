@@ -4,6 +4,7 @@ import chaiAsPromises from 'chai-as-promised';
 import {
 	ChannelClosedError,
 	ChannelFullError,
+	ChannelTimeoutError,
 	ChannelTooManyPendingRecvError,
 	makeChannel,
 } from '../src/lib/index';
@@ -55,6 +56,17 @@ describe('channel', () => {
 		tx.send(1);
 		expect(tx.availableOutboxSlots).to.eq(0);
 		expect(rx.filledInboxSlots).to.eq(1);
+	});
+	it('tests pending recv getters', async () => {
+		const {tx, rx} = makeChannel<number>({maxConcurrentPendingRecv: 1});
+		expect(rx.pendingRecvPromises).to.eq(0);
+		const recvPromise = rx.recv();
+		expect(rx.pendingRecvPromises).to.eq(1);
+		await expect(rx.recv()).to.eventually.be.rejectedWith(ChannelTooManyPendingRecvError);
+		expect(rx.pendingRecvPromises).to.eq(1);
+		tx.send(1);
+		expect(rx.pendingRecvPromises).to.eq(0);
+		await expect(recvPromise).to.eventually.be.fulfilled;
 	});
 	it('tests closed getter', async () => {
 		const {tx, rx} = makeChannel<number>({capacity: 1});
@@ -184,6 +196,15 @@ describe('channel', () => {
 		tx.send('hello!');
 		expect(await rx.recv({timeout: 5})).to.eq('hello!');
 	});
+	it('tests sendWait with timeout', async () => {
+		const {rx, tx} = makeChannel<string>();
+		await expect(tx.sendWait('hello!', {timeout: 5})).to.eventually.be.rejectedWith(
+			ChannelTimeoutError,
+		);
+		await expect(
+			Promise.all([sleep(10).then(() => rx.recv()), tx.sendWait('hello!', {timeout: 20})]),
+		).to.eventually.be.fulfilled;
+	});
 	it('tests too many pending recv', async () => {
 		const {rx} = makeChannel<string>({maxConcurrentPendingRecv: 2});
 		const recv1Promise = rx.recv();
@@ -212,6 +233,71 @@ describe('channel', () => {
 		const abort$ = makeSignal<Error>();
 		tx.send(1);
 		await expect(rx.recv({abort$})).to.eventually.not.be.rejectedWith(Error);
+	});
+	it('tests that an aborted sendWait restores the channel buffer', async () => {
+		const {rx, tx} = makeChannel<number>({capacity: 2});
+		const abort$ = makeSignal<Error>();
+		const sendWaitPromise = tx.sendWait(1, {abort$});
+		expect(rx.filledInboxSlots).to.eq(1);
+		await sleep(10);
+		expect(rx.filledInboxSlots).to.eq(1);
+		abort$.emit(new Error('abort sendWait'));
+		await sleep(1);
+		expect(rx.filledInboxSlots).to.eq(0);
+		await expect(sendWaitPromise).to.eventually.be.rejectedWith(Error);
+	});
+	it('tests that an aborted sendWait fulfills if recv and abort$ happen almost at the same time', async () => {
+		const {rx, tx} = makeChannel<number>({capacity: 2});
+		const abort$ = makeSignal<Error>();
+		const sendWaitPromise = tx.sendWait(1, {abort$});
+		expect(rx.filledInboxSlots).to.eq(1);
+		await sleep(10);
+		expect(rx.filledInboxSlots).to.eq(1);
+		abort$.emit(new Error('abort sendWait'));
+		expect(await rx.recv()).to.eq(1);
+		await expect(sendWaitPromise).to.eventually.be.fulfilled;
+	});
+	it('tests that an aborted sendWait restore the channel buffer', async () => {
+		const {rx, tx} = makeChannel<number>({capacity: 2});
+		const abort$ = makeSignal<Error>();
+		const sendWaitPromise = tx.sendWait(1, {abort$});
+		expect(rx.filledInboxSlots).to.eq(1);
+		await sleep(10);
+		expect(rx.filledInboxSlots).to.eq(1);
+		abort$.emit(new Error('abort sendWait'));
+		await sleep(1);
+		const recvPromise = rx.recv();
+		await expect(
+			Promise.race([recvPromise, sleep(10).then(() => Promise.reject(new ChannelTimeoutError()))]),
+		).to.eventually.be.rejectedWith(ChannelTimeoutError);
+		await expect(sendWaitPromise).to.eventually.be.rejectedWith(Error);
+	});
+	it('tests that an aborted recv does not consume the channel buffer', async () => {
+		const {rx, tx} = makeChannel<number>({capacity: 2});
+		const abort$ = makeSignal<Error>();
+		const recvPromise = rx.recv({abort$});
+		expect(rx.pendingRecvPromises).to.eq(1);
+		await sleep(10);
+		expect(rx.pendingRecvPromises).to.eq(1);
+		abort$.emit(new Error('abort sendWait'));
+		await sleep(1);
+		expect(rx.pendingRecvPromises).to.eq(0);
+		await expect(recvPromise).to.eventually.be.rejectedWith(Error);
+		tx.send(1);
+		expect(rx.filledInboxSlots).to.eq(1);
+	});
+	it('tests that an aborted recv tests fulfills if send and abort$ happen almost at the same time', async () => {
+		const {rx, tx} = makeChannel<number>({capacity: 2});
+		const abort$ = makeSignal<Error>();
+		const recvPromise = rx.recv({abort$});
+		expect(rx.pendingRecvPromises).to.eq(1);
+		await sleep(10);
+		expect(rx.pendingRecvPromises).to.eq(1);
+		abort$.emit(new Error('abort recv'));
+		expect(rx.pendingRecvPromises).to.eq(1);
+		tx.send(1);
+		await expect(recvPromise).to.eventually.be.fulfilled;
+		expect(rx.filledInboxSlots).to.eq(0);
 	});
 	it('tests a multiple producer single consumer scenario', async () => {
 		const {rx, tx} = makeChannel<number>({capacity: 20});

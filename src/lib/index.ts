@@ -171,6 +171,14 @@ export type ChannelRx<T> = {
 	 * A store that contains true if the channel is closed.
 	 */
 	closed$: ReadonlyStore<boolean>;
+	/**
+	 * Return the number of currently waiting `recv` promises.
+	 */
+	get pendingRecvPromises(): number;
+	/**
+	 * A store that contains the number of currently waiting `recv` promises.
+	 */
+	pendingRecvPromises$: ReadonlyStore<number>;
 };
 
 /**
@@ -294,6 +302,7 @@ export function makeChannel<T>(params?: MakeChannelParams): Channel<T> {
 			resolveSend = res;
 			rejectSend = rej;
 		});
+		let metadataItem: BufferItemMetadata | undefined;
 		if (!recvQueue.empty) {
 			recvQueue.dequeue().resolveRecv({
 				promise,
@@ -302,7 +311,7 @@ export function makeChannel<T>(params?: MakeChannelParams): Channel<T> {
 				value: v,
 			});
 		} else {
-			const metadataItem = {
+			metadataItem = {
 				promise,
 				resolveSend,
 				rejectSend,
@@ -310,27 +319,45 @@ export function makeChannel<T>(params?: MakeChannelParams): Channel<T> {
 			metadataQueue.enqueue(metadataItem);
 			itemsQueue.enqueue(v);
 		}
-		if (!options) {
-			await promise;
-		} else if ('abort$' in options) {
-			await Promise.race([
-				promise,
-				new Promise<void>((_, rej) => {
-					options.abort$.subscribeOnce(rej);
-				}),
-			]);
-		} else {
-			const hurry$ = makeSignal<void>();
-			try {
+		try {
+			if (!options) {
+				await promise;
+			} else if ('abort$' in options) {
 				await Promise.race([
 					promise,
-					sleep(options.timeout, {hurry$}).then<BufferItem>(() => {
-						throw new ChannelTimeoutError();
+					new Promise<void>((_, rej) => {
+						options.abort$.subscribeOnce((err) => {
+							// Postpone the rejection by one "tick" to
+							// make the fulfillment of the above promise
+							// have priority over the rejection caused by the signal.
+							Promise.resolve()
+								.then(() => rej(err))
+								.catch(noop);
+						});
 					}),
 				]);
-			} finally {
-				hurry$.emit();
+			} else {
+				const hurry$ = makeSignal<void>();
+				try {
+					await Promise.race([
+						promise,
+						sleep(options.timeout, {hurry$}).then<BufferItem>(() => {
+							throw new ChannelTimeoutError();
+						}),
+					]);
+				} finally {
+					hurry$.emit();
+				}
 			}
+		} catch (err) {
+			if (metadataItem) {
+				const metadataItemIndex = metadataQueue.indexOf(metadataItem);
+				if (metadataItemIndex !== -1) {
+					metadataQueue.remove(metadataItemIndex);
+					itemsQueue.remove(metadataItemIndex);
+				}
+			}
+			throw err;
 		}
 	}
 
@@ -365,27 +392,42 @@ export function makeChannel<T>(params?: MakeChannelParams): Channel<T> {
 				recvQueue.enqueue(recvContext);
 			});
 
-			if (!options) {
-				item = await recvPromise;
-			} else if ('abort$' in options) {
-				item = await Promise.race([
-					recvPromise,
-					new Promise<BufferItem>((_, rej) => {
-						options.abort$.subscribeOnce(rej);
-					}),
-				]);
-			} else {
-				const hurry$ = makeSignal<void>();
-				try {
+			try {
+				if (!options) {
+					item = await recvPromise;
+				} else if ('abort$' in options) {
 					item = await Promise.race([
 						recvPromise,
-						sleep(options.timeout, {hurry$}).then<BufferItem>(() => {
-							throw new ChannelTimeoutError();
+						new Promise<BufferItem>((_, rej) => {
+							options.abort$.subscribeOnce((err) => {
+								// Postpone the rejection by one "tick" to
+								// make the fulfillment of the above promise
+								// have priority over the rejection caused by the signal.
+								Promise.resolve()
+									.then(() => rej(err))
+									.catch(noop);
+							});
 						}),
 					]);
-				} finally {
-					hurry$.emit();
+				} else {
+					const hurry$ = makeSignal<void>();
+					try {
+						item = await Promise.race([
+							recvPromise,
+							sleep(options.timeout, {hurry$}).then<BufferItem>(() => {
+								throw new ChannelTimeoutError();
+							}),
+						]);
+					} finally {
+						hurry$.emit();
+					}
 				}
+			} catch (err) {
+				const recvContextIndex = recvQueue.indexOf(recvContext);
+				if (recvContextIndex !== -1) {
+					recvQueue.remove(recvContextIndex);
+				}
+				throw err;
 			}
 		}
 		item.resolveSend();
@@ -410,6 +452,7 @@ export function makeChannel<T>(params?: MakeChannelParams): Channel<T> {
 		for (const item of metadataQueue) {
 			item.rejectSend(channelClosedError);
 		}
+		itemsQueue.clear();
 	}
 
 	return {
@@ -433,6 +476,10 @@ export function makeChannel<T>(params?: MakeChannelParams): Channel<T> {
 			capacity,
 		},
 		rx: {
+			pendingRecvPromises$: recvQueue.filledSlots$,
+			get pendingRecvPromises() {
+				return recvQueue.filledSlots$.value;
+			},
 			recv,
 			iter,
 			[Symbol.asyncIterator]: iter,
