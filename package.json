@@ -75,6 +75,6 @@
 		"@cdellacqua/signals": "^4.1.1",
 		"@cdellacqua/sleep": "^4.0.1",
 		"reactive-circular-queue": "^1.4.0",
-		"universal-stores": "^1.1.2"
+		"universal-stores": "^1.1.3"
 	}
 }
