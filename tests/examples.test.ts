@@ -35,7 +35,7 @@ describe('examples', () => {
 		const {rx, tx} = makeChannel<{email: string; content: string}>();
 
 		async function processEmailQueue() {
-			while (!rx.closed) {
+			while (!rx.closed$.content()) {
 				try {
 					const {email} = await rx.recv();
 					expect(`Now sending an email to ${email}`).to.eq(

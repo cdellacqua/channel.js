@@ -59,7 +59,7 @@ by sharing a single channel among several tasks.
 
 #### Defined in
 
-[src/lib/index.ts:200](https://github.com/cdellacqua/channel.js/blob/main/src/lib/index.ts#L200)
+[src/lib/index.ts:172](https://github.com/cdellacqua/channel.js/blob/main/src/lib/index.ts#L172)
 
 ___
 
@@ -83,11 +83,7 @@ Receiving end of a channel.
 | `closed$` | `ReadonlyStore`<`boolean`\> | A store that contains true if the channel is closed. |
 | `filledInboxSlots$` | `ReadonlyStore`<`number`\> | A store that contains the number of filled slots (from 0 to the channel capacity) in the input buffer or 0 if the channel is closed. |
 | `pendingRecvPromises$` | `ReadonlyStore`<`number`\> | A store that contains the number of currently waiting `recv` promises. |
-| ``get` **canRead**(): `boolean`` | {} | - |
 | ``get` **capacity**(): `number`` | {} | - |
-| ``get` **closed**(): `boolean`` | {} | - |
-| ``get` **filledInboxSlots**(): `number`` | {} | - |
-| ``get` **pendingRecvPromises**(): `number`` | {} | - |
 | `[asyncIterator]` | () => `AsyncIterator`<`T`, `any`, `undefined`\> | Return an async iterator that consumes the channel buffer If the channel buffer is already empty the iterator will not emit any value. |
 | `close` | () => `void` | Close the channel, stopping all pending send/recv requests. |
 | `iter` | () => `AsyncIterator`<`T`, `any`, `undefined`\> | Return an async iterator that consumes the channel buffer If the channel buffer is already empty the iterator will not emit any value. |
@@ -95,7 +91,7 @@ Receiving end of a channel.
 
 #### Defined in
 
-[src/lib/index.ts:116](https://github.com/cdellacqua/channel.js/blob/main/src/lib/index.ts#L116)
+[src/lib/index.ts:104](https://github.com/cdellacqua/channel.js/blob/main/src/lib/index.ts#L104)
 
 ___
 
@@ -118,10 +114,7 @@ Transmission end of a channel.
 | `availableOutboxSlots$` | `ReadonlyStore`<`number`\> | A store that contains the number of available slots (from 0 to the channel capacity) in the output buffer or 0 if the channel is closed. |
 | `canWrite$` | `ReadonlyStore`<`boolean`\> | A store that contains true if the transmission buffer is not full and the channel is not closed. |
 | `closed$` | `ReadonlyStore`<`boolean`\> | A store that contains true if the channel is closed. |
-| ``get` **availableOutboxSlots**(): `number`` | {} | - |
-| ``get` **canWrite**(): `boolean`` | {} | - |
 | ``get` **capacity**(): `number`` | {} | - |
-| ``get` **closed**(): `boolean`` | {} | - |
 | `close` | () => `void` | Close the channel, stopping all pending send/recv requests. |
 | `send` | (`v`: `T`) => `void` | Push data into the channel. This operation enqueues the passed value in the transmission queue if there is no pending `recv`.  **`throws`** {ChannelClosedError} if the channel is closed.  **`throws`** {ChannelFullError} if the channel is transmission queue is full. |
 | `sendWait` | (`v`: `T`, `options?`: { `abort$`: `ReadonlySignal`<`unknown`\>  } \| { `timeout`: `number`  }) => `Promise`<`void`\> | Push data into the channel and waits for it to be consumed by the receiving end. This operation enqueues the passed value in the transmission queue if there is no pending `recv`, but removes it if the operation is aborted by an abort signal or a timeout expiration.  **`throws`** {ChannelClosedError} if the channel is closed.  **`throws`** {ChannelTimeoutError} if the sent item is consumed within the specified timeout.  **`throws`** {ChannelFullError} if the channel is transmission queue is full.  **`throws`** {unknown} if `abort$` emits before `sendWait` can resolve. |
@@ -145,7 +138,7 @@ ___
 
 #### Defined in
 
-[src/lib/index.ts:215](https://github.com/cdellacqua/channel.js/blob/main/src/lib/index.ts#L215)
+[src/lib/index.ts:187](https://github.com/cdellacqua/channel.js/blob/main/src/lib/index.ts#L187)
 
 ## Functions
 
@@ -197,4 +190,4 @@ a [Channel](README.md#channel)
 
 #### Defined in
 
-[src/lib/index.ts:252](https://github.com/cdellacqua/channel.js/blob/main/src/lib/index.ts#L252)
+[src/lib/index.ts:224](https://github.com/cdellacqua/channel.js/blob/main/src/lib/index.ts#L224)

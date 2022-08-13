@@ -4,7 +4,7 @@ import {makeChannel} from './lib';
 const {rx, tx} = makeChannel<{amount: string; currency: 'USD' | 'EUR'}>();
 
 (async () => {
-	while (!rx.closed) {
+	while (!rx.closed$.content()) {
 		const {amount, currency} = await rx.recv();
 		console.log(`processing a payment for ${amount.padStart(5, ' ')} ${currency}`);
 	}

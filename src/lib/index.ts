@@ -77,17 +77,9 @@ export type ChannelTx<T> = {
 	 */
 	sendWait(v: T, options?: {abort$: ReadonlySignal<unknown>} | {timeout: number}): Promise<void>;
 	/**
-	 * Return true if the transmission buffer is not full and the channel is not closed.
-	 */
-	get canWrite(): boolean;
-	/**
 	 * A store that contains true if the transmission buffer is not full and the channel is not closed.
 	 */
 	canWrite$: ReadonlyStore<boolean>;
-	/**
-	 * Return the number of available slots (from 0 to the channel capacity) in the output buffer or 0 if the channel is closed.
-	 */
-	get availableOutboxSlots(): number;
 	/**
 	 * A store that contains the number of available slots (from 0 to the channel capacity) in the output buffer or 0 if the channel is closed.
 	 */
@@ -101,10 +93,6 @@ export type ChannelTx<T> = {
 	 */
 	close(): void;
 	/**
-	 * Return true if the channel is closed.
-	 */
-	get closed(): boolean;
-	/**
 	 * A store that contains true if the channel is closed.
 	 */
 	closed$: ReadonlyStore<boolean>;
@@ -115,17 +103,9 @@ export type ChannelTx<T> = {
  */
 export type ChannelRx<T> = {
 	/**
-	 * Return true if there is some data ready to be consumed, the channel is not closed and there are not too many pending `recv` requests.
-	 */
-	get canRead(): boolean;
-	/**
 	 * A store that contains true if there is some data ready to be consumed, the channel is not closed and there are not too many pending `recv` requests.
 	 */
 	canRead$: ReadonlyStore<boolean>;
-	/**
-	 * Return the number of filled slots (from 0 to the channel capacity) in the input buffer or 0 if the channel is closed.
-	 */
-	get filledInboxSlots(): number;
 	/**
 	 * A store that contains the number of filled slots (from 0 to the channel capacity) in the input buffer or 0 if the channel is closed.
 	 */
@@ -164,17 +144,9 @@ export type ChannelRx<T> = {
 	 */
 	close(): void;
 	/**
-	 * Return true if the channel is closed.
-	 */
-	get closed(): boolean;
-	/**
 	 * A store that contains true if the channel is closed.
 	 */
 	closed$: ReadonlyStore<boolean>;
-	/**
-	 * Return the number of currently waiting `recv` promises.
-	 */
-	get pendingRecvPromises(): number;
 	/**
 	 * A store that contains the number of currently waiting `recv` promises.
 	 */
@@ -290,10 +262,10 @@ export function makeChannel<T>(params?: MakeChannelParams): Channel<T> {
 		v: T,
 		options?: {abort$: ReadonlySignal<unknown>} | {timeout: number},
 	): Promise<void> {
-		if (closed$.value) {
+		if (closed$.content()) {
 			throw new ChannelClosedError();
 		}
-		if (metadataQueue.full) {
+		if (metadataQueue.full$.content()) {
 			throw new ChannelFullError();
 		}
 		let resolveSend: () => void = noop;
@@ -303,7 +275,7 @@ export function makeChannel<T>(params?: MakeChannelParams): Channel<T> {
 			rejectSend = rej;
 		});
 		let metadataItem: BufferItemMetadata | undefined;
-		if (!recvQueue.empty) {
+		if (!recvQueue.empty$.content()) {
 			recvQueue.dequeue().resolveRecv({
 				promise,
 				resolveSend,
@@ -362,24 +334,24 @@ export function makeChannel<T>(params?: MakeChannelParams): Channel<T> {
 	}
 
 	function send(v: T): void {
-		if (closed$.value) {
+		if (closed$.content()) {
 			throw new ChannelClosedError();
 		}
-		if (metadataQueue.full) {
+		if (metadataQueue.full$.content()) {
 			throw new ChannelFullError();
 		}
 		sendWait(v).catch(noop);
 	}
 
 	async function recv(options?: {abort$: ReadonlySignal<unknown>} | {timeout: number}) {
-		if (closed$.value) {
+		if (closed$.content()) {
 			throw new ChannelClosedError();
 		}
 		let item: BufferItem;
-		if (!metadataQueue.empty) {
+		if (!metadataQueue.empty$.content()) {
 			item = {...metadataQueue.dequeue(), value: itemsQueue.dequeue()};
 		} else {
-			if (recvQueue.full) {
+			if (recvQueue.full$.content()) {
 				throw new ChannelTooManyPendingRecvError();
 			}
 			const recvContext: RecvQueueItem = {
@@ -435,13 +407,13 @@ export function makeChannel<T>(params?: MakeChannelParams): Channel<T> {
 	}
 
 	async function* iter() {
-		while (metadataQueue.filledSlots > 0) {
+		while (metadataQueue.filledSlots$.content() > 0) {
 			yield await recv();
 		}
 	}
 
 	function close() {
-		if (closed$.value) {
+		if (closed$.content()) {
 			return;
 		}
 		closed$.set(true);
@@ -460,42 +432,21 @@ export function makeChannel<T>(params?: MakeChannelParams): Channel<T> {
 		tx: {
 			send,
 			sendWait,
-			get canWrite() {
-				return canWrite$.value;
-			},
 			canWrite$,
-			get closed() {
-				return closed$.value;
-			},
 			closed$,
 			close,
-			get availableOutboxSlots() {
-				return availableOutboxSlots$.value;
-			},
 			availableOutboxSlots$,
 			capacity,
 		},
 		rx: {
 			pendingRecvPromises$: recvQueue.filledSlots$,
-			get pendingRecvPromises() {
-				return recvQueue.filledSlots$.value;
-			},
 			recv,
 			iter,
 			[Symbol.asyncIterator]: iter,
-			get canRead() {
-				return canRead$.value;
-			},
 			canRead$: canRead$,
-			get closed() {
-				return closed$.value;
-			},
 			closed$,
 			close,
 			capacity,
-			get filledInboxSlots() {
-				return filledInboxSlots$.value;
-			},
 			filledInboxSlots$,
 		},
 	};

@@ -40,11 +40,11 @@ The `tx` object is a `ChannelTx<T>`, which in turn exposes the following:
 - `sendWait(...)`, similar to `send(...)`, but let the caller wait for
   the receiving end to consume the data;
 - `close()`, to close the channel. This will also reject all pending receiving Promises;
-- `closed`/`closed$`, boolean getter and store that can be used to check
+- `closed$`, a boolean store that can be used to check
   if the channel has been closed, i.e. the `close()` method has been called by either the receiving or transmission end of the channel;
-- `canWrite`/`canWrite$`, boolean getter and store that can be used to check
+- `canWrite$`, a boolean store that can be used to check
   if the channel is capable of receiving data, that is its buffer is not full and the channel is not closed;
-- `availableOutboxSlots`/`availableOutboxSlots$`, number getter and store that can be used to check how much space is available in the transmission buffer.
+- `availableOutboxSlots$`, a store that can be used to check how much space is available in the transmission buffer.
 
 The `rx` object is a `ChannelRx<T>`, which in turn exposes the following:
 
@@ -54,12 +54,12 @@ The `rx` object is a `ChannelRx<T>`, which in turn exposes the following:
   the transmitting end calls `send(...)` or `sendWait(...)`;
 - `iter()/[Symbol.asyncIterator]()`, to consume the channel buffer using an async iterator;
 - `close()`, to close the channel. This will also reject all pending receiving Promises;
-- `closed`/`closed$`, boolean getter and store that can be used to check
+- `closed$`, a store store that can be used to check
   if the channel has been closed, i.e. the `close()` method has been called by either the receiving or transmission end of the channel;
-- `canRead`/`canRead$`, boolean getter and store that can be used to check
+- `canRead$`, a boolean store that can be used to check
   if the channel can be consumed, that is its buffer is not empty and the channel is not closed;
-- `filledInboxSlots`/`filledInboxSlots$`, number getter and store that can be used to check how much space is filled in the transmission buffer;
-- `pendingRecvPromises`/`pendingRecvPromises$`, number getter and store that can be used to check how many `recv` calls are pending.
+- `filledInboxSlots$`, a store that can be used to check how much space is filled in the transmission buffer;
+- `pendingRecvPromises$`, a store that can be used to check how many `recv` calls are pending.
 
 This library provides a function called `makeChannel` to create `Channel<T>` objects.
 
@@ -105,7 +105,7 @@ import {makeChannel} from 'reactive-channel';
 const {rx, tx} = makeChannel<{email: string; content: string}>();
 
 async function processEmailQueue() {
-	while (!rx.closed) {
+	while (!rx.closed$.content()) {
 		try {
 			const {email, content} = await rx.recv();
 			console.log(`Now sending an email to ${email}`);
