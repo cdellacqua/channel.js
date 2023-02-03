@@ -88,7 +88,7 @@ describe('examples', () => {
 			},
 		};
 
-		const abortController = new AbortController()
+		const abortController = new AbortController();
 		// Assuming you have a `abortButton` variable
 		abortButton.addEventListener('click', () =>
 			abortController.abort(new Error('Action cancelled by the user')),
