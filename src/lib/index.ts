@@ -275,10 +275,10 @@ export function makeChannel<T>(params?: MakeChannelParams): Channel<T> {
 				await promise;
 			} else {
 				const signal = options.signal;
+				signal.throwIfAborted();
 				await Promise.race([
 					promise,
 					new Promise<void>((_, rej) => {
-						signal.throwIfAborted();
 						signal.addEventListener('abort', () => {
 							// Postpone the rejection by one "tick" to
 							// make the fulfillment of the above promise
@@ -338,10 +338,10 @@ export function makeChannel<T>(params?: MakeChannelParams): Channel<T> {
 					item = await recvPromise;
 				} else {
 					const signal = options.signal;
+					signal.throwIfAborted();
 					item = await Promise.race([
 						recvPromise,
 						new Promise<BufferItem>((_, rej) => {
-							signal.throwIfAborted();
 							signal.addEventListener('abort', () => {
 								// Postpone the rejection by one "tick" to
 								// make the fulfillment of the above promise

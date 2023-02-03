@@ -292,6 +292,23 @@ describe('channel', () => {
 		tx.send(1);
 		expect(rx.filledInboxSlots$.content()).to.eq(1);
 	});
+	it('tests that recv rejects immediately if the passed signal has already been aborted', async () => {
+		const {rx} = makeChannel<number>({capacity: 2});
+		const abortController = new AbortController();
+		abortController.abort();
+		const recvPromise = rx.recv({signal: abortController.signal});
+		expect(rx.pendingRecvPromises$.content()).to.eq(0);
+		await sleep(10);
+		await expect(recvPromise).to.eventually.be.rejected;
+	});
+	it('tests that sendWait rejects immediately if the passed signal has already been aborted', async () => {
+		const {tx} = makeChannel<number>({capacity: 2});
+		const abortController = new AbortController();
+		abortController.abort();
+		const sendPromise = tx.sendWait(0, {signal: abortController.signal});
+		await sleep(10);
+		await expect(sendPromise).to.eventually.be.rejected;
+	});
 	it('tests that an aborted recv tests fulfills if send and abort happen almost at the same time', async () => {
 		const {rx, tx} = makeChannel<number>({capacity: 2});
 		const abortController = new AbortController();
