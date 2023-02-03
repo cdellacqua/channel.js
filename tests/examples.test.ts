@@ -1,7 +1,6 @@
-import {makeSignal} from '@cdellacqua/signals';
 import chai, {expect} from 'chai';
 import chaiAsPromises from 'chai-as-promised';
-import {ChannelClosedError, ChannelTimeoutError, makeChannel} from '../src/lib/index';
+import {ChannelClosedError, makeChannel} from '../src/lib/index';
 
 chai.use(chaiAsPromises);
 
@@ -66,11 +65,11 @@ describe('examples', () => {
 		const {rx} = makeChannel<{email: string; content: string}>();
 		// You can abort a `recv` using a simple timeout:
 		try {
-			await rx.recv({timeout: 5});
+			await rx.recv({signal: AbortSignal.timeout(5)});
 			expect(true).to.be.false; // unreachable
 		} catch (err) {
-			expect(err).to.be.instanceOf(ChannelTimeoutError);
-			if (err instanceof ChannelTimeoutError) {
+			expect(err).to.be.instanceOf(DOMException);
+			if (err instanceof DOMException && err.name === 'TimeoutError') {
 				// console.warn('No data to consume, timeout expired');
 			} else {
 				expect(true).to.be.false; // unreachable
@@ -89,15 +88,15 @@ describe('examples', () => {
 			},
 		};
 
-		const abort$ = makeSignal<Error>();
+		const abortController = new AbortController()
 		// Assuming you have a `abortButton` variable
 		abortButton.addEventListener('click', () =>
-			abort$.emit(new Error('Action cancelled by the user')),
+			abortController.abort(new Error('Action cancelled by the user')),
 		);
 
-		// You can abort a `recv` using an abort$ signal:
+		// You can abort a `recv` using an abort signal:
 		try {
-			const recvPromise = rx.recv({abort$});
+			const recvPromise = rx.recv({signal: abortController.signal});
 			savedCb();
 			await recvPromise;
 		} catch (err) {

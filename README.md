@@ -136,9 +136,9 @@ import {makeChannel} from 'reactive-channel';
 const {rx, tx} = makeChannel<{email: string; content: string}>();
 // You can abort a `recv` using a simple timeout:
 try {
-	const {email, content} = await rx.recv({timeout: 5000});
+	const {email, content} = await rx.recv({signal: AbortSignal.timeout(5000)});
 } catch (err) {
-	if (err instanceof ChannelTimeoutError) {
+	if (err instanceof DOMException && err.name === 'TimeoutError') {
 		console.warn('No data to consume, timeout expired');
 	}
 	// ...
@@ -149,21 +149,20 @@ Or you can abort a `recv` using some custom logic, e.g. when the user clicks a b
 
 ```ts
 import {makeChannel} from 'reactive-channel';
-import {makeSignal} from '@cdellacqua/signals';
 
 // Create a channel that can be used to pass strings.
 const {rx, tx} = makeChannel<{email: string; content: string}>();
 
-const abort$ = makeSignal<Error>();
+const abortController = new AbortController();
 // Assuming you have a `abortButton` variable
 abortButton.addEventListener(
 	'click',
-	() => abort$.emit(new Error('Action cancelled by the user'))
+	() => abortController.abort(new Error('Action cancelled by the user'))
 );
 
-// You can abort a `recv` using an abort$ signal:
+// You can abort a `recv` using an abort signal:
 try {
-	const {email, content} = await rx.recv({abort$});
+	const {email, content} = await rx.recv({signal: abortController.signal});
 } catch (err) {
 	// ...
 }

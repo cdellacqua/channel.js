@@ -1,19 +1,7 @@
-import {makeSignal, ReadonlySignal} from '@cdellacqua/signals';
-import {sleep} from '@cdellacqua/sleep';
 import {makeCircularQueue, ReadonlyCircularQueue} from 'reactive-circular-queue';
 import {makeDerivedStore, makeStore, ReadonlyStore} from 'universal-stores';
 
 const noop = () => undefined as void;
-
-/**
- * Error that occurs when a receiver is unable to obtain any data from the channel
- * before the specified timeout (e.g. when using `recv` and passing a timeout).
- */
-export class ChannelTimeoutError extends Error {
-	constructor() {
-		super('channel timed out');
-	}
-}
 
 /**
  * Error that occurs when the channel buffer has been filled up, and thus it cannot
@@ -62,20 +50,17 @@ export type ChannelTx<T> = {
 	 * Push data into the channel and waits for it to be consumed by the receiving end.
 	 * This operation enqueues the passed value in the transmission queue if there
 	 * is no pending `recv`, but removes it if the operation is aborted by an abort
-	 * signal or a timeout expiration.
+	 * signal.
 	 * @param v the data to send.
-	 * @param options an abort signal or a timeout in milliseconds.
-	 * @param options.timeout the maximum wait time (in milliseconds) for the item to be consumed by the receiving end.
-	 * @param options.abort$ an abort signal to stop the pending promise.
+	 * @param options.signal (optional) an abort signal to stop the pending promise.
 	 * If this signal emits before `sendWait` can resolve, the enqueued value will be removed
 	 * and the emitted value will be "thrown" (as in `throw ...;`) to the caller
 	 * of `sendWait`.
 	 * @throws {ChannelClosedError} if the channel is closed.
-	 * @throws {ChannelTimeoutError} if the sent item is consumed within the specified timeout.
 	 * @throws {ChannelFullError} if the channel is transmission queue is full.
-	 * @throws {unknown} if `abort$` emits before `sendWait` can resolve.
+	 * @throws {unknown} if `signal` triggers before `sendWait` can resolve.
 	 */
-	sendWait(v: T, options?: {abort$: ReadonlySignal<unknown>} | {timeout: number}): Promise<void>;
+	sendWait(v: T, options?: {signal?: AbortSignal}): Promise<void>;
 	/**
 	 * A store that contains true if the transmission buffer is not full and the channel is not closed.
 	 */
@@ -118,17 +103,14 @@ export type ChannelRx<T> = {
 	 * Consume data from the channel buffer.
 	 * If there is no data in the channel, this method will block the caller
 	 * until it's available.
-	 * @param options (optional) an abort signal or a timeout in milliseconds.
-	 * @param options.abort$ an abort signal to stop the pending promise.
-	 * If this signal emits before `recv` can resolve, the channel buffer won't be
-	 * consumed and the emitted value will be "thrown" (as in `throw ...;`) to the caller
+	 * @param options.signal (optional) an abort signal to stop the pending promise.
+	 * If this signal triggers before `recv` can resolve, the channel buffer won't be
+	 * consumed and the abort reason value will be "thrown" (as in `throw ...;`) to the caller
 	 * of `recv`.
-	 * @param options.timeout a timeout expressed in milliseconds that limits the maximum wait time.
 	 * @throws {ChannelClosedError} if the channel is closed.
-	 * @throws {ChannelTimeoutError} if the passed timeout expires before `recv` can resolve.
-	 * @throws {unknown} if `abort$` emits before `recv` is able to consume the channel buffer.
+	 * @throws {unknown} if `.abort(...)` is called before `recv` is able to consume the channel buffer.
 	 */
-	recv(options?: {abort$: ReadonlySignal<unknown>} | {timeout: number}): Promise<T>;
+	recv(options?: {signal?: AbortSignal}): Promise<T>;
 	/**
 	 * Return an async iterator that consumes the channel buffer
 	 * If the channel buffer is already empty the iterator will not emit any value.
@@ -258,10 +240,7 @@ export function makeChannel<T>(params?: MakeChannelParams): Channel<T> {
 		([filledInboxSlots, recvFull]) => filledInboxSlots > 0 && !recvFull,
 	);
 
-	async function sendWait(
-		v: T,
-		options?: {abort$: ReadonlySignal<unknown>} | {timeout: number},
-	): Promise<void> {
+	async function sendWait(v: T, options?: {signal?: AbortSignal}): Promise<void> {
 		if (closed$.content()) {
 			throw new ChannelClosedError();
 		}
@@ -292,34 +271,24 @@ export function makeChannel<T>(params?: MakeChannelParams): Channel<T> {
 			itemsQueue.enqueue(v);
 		}
 		try {
-			if (!options) {
+			if (!options?.signal) {
 				await promise;
-			} else if ('abort$' in options) {
+			} else {
+				const signal = options.signal;
 				await Promise.race([
 					promise,
 					new Promise<void>((_, rej) => {
-						options.abort$.subscribeOnce((err) => {
+						signal.throwIfAborted();
+						signal.addEventListener('abort', () => {
 							// Postpone the rejection by one "tick" to
 							// make the fulfillment of the above promise
 							// have priority over the rejection caused by the signal.
 							Promise.resolve()
-								.then(() => rej(err))
+								.then(() => rej(signal.reason))
 								.catch(noop);
 						});
 					}),
 				]);
-			} else {
-				const hurry$ = makeSignal<void>();
-				try {
-					await Promise.race([
-						promise,
-						sleep(options.timeout, {hurry$}).then<BufferItem>(() => {
-							throw new ChannelTimeoutError();
-						}),
-					]);
-				} finally {
-					hurry$.emit();
-				}
 			}
 		} catch (err) {
 			if (metadataItem) {
@@ -343,7 +312,7 @@ export function makeChannel<T>(params?: MakeChannelParams): Channel<T> {
 		sendWait(v).catch(noop);
 	}
 
-	async function recv(options?: {abort$: ReadonlySignal<unknown>} | {timeout: number}) {
+	async function recv(options?: {signal?: AbortSignal}) {
 		if (closed$.content()) {
 			throw new ChannelClosedError();
 		}
@@ -365,34 +334,24 @@ export function makeChannel<T>(params?: MakeChannelParams): Channel<T> {
 			});
 
 			try {
-				if (!options) {
+				if (!options?.signal) {
 					item = await recvPromise;
-				} else if ('abort$' in options) {
+				} else {
+					const signal = options.signal;
 					item = await Promise.race([
 						recvPromise,
 						new Promise<BufferItem>((_, rej) => {
-							options.abort$.subscribeOnce((err) => {
+							signal.throwIfAborted();
+							signal.addEventListener('abort', () => {
 								// Postpone the rejection by one "tick" to
 								// make the fulfillment of the above promise
 								// have priority over the rejection caused by the signal.
 								Promise.resolve()
-									.then(() => rej(err))
+									.then(() => rej(signal.reason))
 									.catch(noop);
 							});
 						}),
 					]);
-				} else {
-					const hurry$ = makeSignal<void>();
-					try {
-						item = await Promise.race([
-							recvPromise,
-							sleep(options.timeout, {hurry$}).then<BufferItem>(() => {
-								throw new ChannelTimeoutError();
-							}),
-						]);
-					} finally {
-						hurry$.emit();
-					}
 				}
 			} catch (err) {
 				const recvContextIndex = recvQueue.indexOf(recvContext);
