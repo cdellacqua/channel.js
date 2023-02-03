@@ -42,13 +42,13 @@ Error.constructor
 
 #### Defined in
 
-[src/lib/index.ts:33](https://github.com/cdellacqua/channel.js/blob/main/src/lib/index.ts#L33)
+[src/lib/index.ts:21](https://github.com/cdellacqua/channel.js/blob/main/src/lib/index.ts#L21)
 
 ## Properties
 
 ### cause
 
-• `Optional` **cause**: `Error`
+• `Optional` **cause**: `unknown`
 
 #### Inherited from
 
@@ -70,7 +70,7 @@ Error.message
 
 #### Defined in
 
-node_modules/typescript/lib/lib.es5.d.ts:1029
+node_modules/typescript/lib/lib.es5.d.ts:1054
 
 ___
 
@@ -84,7 +84,7 @@ Error.name
 
 #### Defined in
 
-node_modules/typescript/lib/lib.es5.d.ts:1028
+node_modules/typescript/lib/lib.es5.d.ts:1053
 
 ___
 
@@ -98,7 +98,7 @@ Error.stack
 
 #### Defined in
 
-node_modules/typescript/lib/lib.es5.d.ts:1030
+node_modules/typescript/lib/lib.es5.d.ts:1055
 
 ___
 
@@ -112,7 +112,9 @@ ___
 
 Optional override for formatting stack traces
 
-**`see`** https://v8.dev/docs/stack-trace-api#customizing-stack-traces
+**`See`**
+
+https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 
 ##### Parameters
 
