@@ -84,7 +84,7 @@ by sharing a single channel among several tasks.
 
 #### Defined in
 
-[src/lib/index.ts:157](https://github.com/cdellacqua/channel.js/blob/main/src/lib/index.ts#L157)
+[src/lib/index.ts:156](https://github.com/cdellacqua/channel.js/blob/main/src/lib/index.ts#L156)
 
 ___
 
@@ -116,7 +116,7 @@ Receiving end of a channel.
 
 #### Defined in
 
-[src/lib/index.ts:92](https://github.com/cdellacqua/channel.js/blob/main/src/lib/index.ts#L92)
+[src/lib/index.ts:91](https://github.com/cdellacqua/channel.js/blob/main/src/lib/index.ts#L91)
 
 ___
 
@@ -146,7 +146,7 @@ Transmission end of a channel.
 
 #### Defined in
 
-[src/lib/index.ts:42](https://github.com/cdellacqua/channel.js/blob/main/src/lib/index.ts#L42)
+[src/lib/index.ts:41](https://github.com/cdellacqua/channel.js/blob/main/src/lib/index.ts#L41)
 
 ___
 
@@ -264,7 +264,7 @@ ___
 
 #### Defined in
 
-[src/lib/index.ts:172](https://github.com/cdellacqua/channel.js/blob/main/src/lib/index.ts#L172)
+[src/lib/index.ts:171](https://github.com/cdellacqua/channel.js/blob/main/src/lib/index.ts#L171)
 
 ___
 
@@ -747,7 +747,7 @@ a [Channel](README.md#channel)
 
 #### Defined in
 
-[src/lib/index.ts:209](https://github.com/cdellacqua/channel.js/blob/main/src/lib/index.ts#L209)
+[src/lib/index.ts:208](https://github.com/cdellacqua/channel.js/blob/main/src/lib/index.ts#L208)
 
 ___
 
