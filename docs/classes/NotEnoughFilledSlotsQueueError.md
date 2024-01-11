@@ -1,40 +1,48 @@
-[reactive-channel](../README.md) / ChannelFullError
+[reactive-channel](../README.md) / NotEnoughFilledSlotsQueueError
 
-# Class: ChannelFullError
+# Class: NotEnoughFilledSlotsQueueError
 
-Error that occurs when the channel buffer has been filled up, and thus it cannot
-accept any more `send` calls.
+Error that is thrown when trying to dequeue n items from a queue containing m < n items.
 
 ## Hierarchy
 
 - `Error`
 
-  ↳ **`ChannelFullError`**
+  ↳ **`NotEnoughFilledSlotsQueueError`**
 
 ## Table of contents
 
 ### Constructors
 
-- [constructor](ChannelFullError.md#constructor)
+- [constructor](NotEnoughFilledSlotsQueueError.md#constructor)
 
 ### Properties
 
-- [cause](ChannelFullError.md#cause)
-- [message](ChannelFullError.md#message)
-- [name](ChannelFullError.md#name)
-- [stack](ChannelFullError.md#stack)
-- [prepareStackTrace](ChannelFullError.md#preparestacktrace)
-- [stackTraceLimit](ChannelFullError.md#stacktracelimit)
+- [cause](NotEnoughFilledSlotsQueueError.md#cause)
+- [filledSlots](NotEnoughFilledSlotsQueueError.md#filledslots)
+- [message](NotEnoughFilledSlotsQueueError.md#message)
+- [name](NotEnoughFilledSlotsQueueError.md#name)
+- [requestedItems](NotEnoughFilledSlotsQueueError.md#requesteditems)
+- [stack](NotEnoughFilledSlotsQueueError.md#stack)
+- [prepareStackTrace](NotEnoughFilledSlotsQueueError.md#preparestacktrace)
+- [stackTraceLimit](NotEnoughFilledSlotsQueueError.md#stacktracelimit)
 
 ### Methods
 
-- [captureStackTrace](ChannelFullError.md#capturestacktrace)
+- [captureStackTrace](NotEnoughFilledSlotsQueueError.md#capturestacktrace)
 
 ## Constructors
 
 ### constructor
 
-• **new ChannelFullError**()
+• **new NotEnoughFilledSlotsQueueError**(`requestedItems`, `filledSlots`)
+
+#### Parameters
+
+| Name | Type |
+| :------ | :------ |
+| `requestedItems` | `number` |
+| `filledSlots` | `number` |
 
 #### Overrides
 
@@ -42,7 +50,7 @@ Error.constructor
 
 #### Defined in
 
-[src/lib/index.ts:14](https://github.com/cdellacqua/channel.js/blob/main/src/lib/index.ts#L14)
+node_modules/reactive-circular-queue/dist/index.d.ts:148
 
 ## Properties
 
@@ -57,6 +65,16 @@ Error.cause
 #### Defined in
 
 node_modules/typescript/lib/lib.es2022.error.d.ts:26
+
+___
+
+### filledSlots
+
+• **filledSlots**: `number`
+
+#### Defined in
+
+node_modules/reactive-circular-queue/dist/index.d.ts:147
 
 ___
 
@@ -85,6 +103,16 @@ Error.name
 #### Defined in
 
 node_modules/typescript/lib/lib.es5.d.ts:1053
+
+___
+
+### requestedItems
+
+• **requestedItems**: `number`
+
+#### Defined in
+
+node_modules/reactive-circular-queue/dist/index.d.ts:146
 
 ___
 

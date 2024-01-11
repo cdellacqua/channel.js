@@ -42,7 +42,7 @@ Error.constructor
 
 #### Defined in
 
-[src/lib/index.ts:31](https://github.com/cdellacqua/channel.js/blob/main/src/lib/index.ts#L31)
+[src/lib/index.ts:34](https://github.com/cdellacqua/channel.js/blob/main/src/lib/index.ts#L34)
 
 ## Properties
 

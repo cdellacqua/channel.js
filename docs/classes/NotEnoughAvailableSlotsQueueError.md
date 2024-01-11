@@ -1,40 +1,48 @@
-[reactive-channel](../README.md) / ChannelFullError
+[reactive-channel](../README.md) / NotEnoughAvailableSlotsQueueError
 
-# Class: ChannelFullError
+# Class: NotEnoughAvailableSlotsQueueError
 
-Error that occurs when the channel buffer has been filled up, and thus it cannot
-accept any more `send` calls.
+Error that is thrown when trying to enqueue n items into a queue having an availability of m < n slots.
 
 ## Hierarchy
 
 - `Error`
 
-  ↳ **`ChannelFullError`**
+  ↳ **`NotEnoughAvailableSlotsQueueError`**
 
 ## Table of contents
 
 ### Constructors
 
-- [constructor](ChannelFullError.md#constructor)
+- [constructor](NotEnoughAvailableSlotsQueueError.md#constructor)
 
 ### Properties
 
-- [cause](ChannelFullError.md#cause)
-- [message](ChannelFullError.md#message)
-- [name](ChannelFullError.md#name)
-- [stack](ChannelFullError.md#stack)
-- [prepareStackTrace](ChannelFullError.md#preparestacktrace)
-- [stackTraceLimit](ChannelFullError.md#stacktracelimit)
+- [availableSlots](NotEnoughAvailableSlotsQueueError.md#availableslots)
+- [cause](NotEnoughAvailableSlotsQueueError.md#cause)
+- [message](NotEnoughAvailableSlotsQueueError.md#message)
+- [name](NotEnoughAvailableSlotsQueueError.md#name)
+- [requestedItems](NotEnoughAvailableSlotsQueueError.md#requesteditems)
+- [stack](NotEnoughAvailableSlotsQueueError.md#stack)
+- [prepareStackTrace](NotEnoughAvailableSlotsQueueError.md#preparestacktrace)
+- [stackTraceLimit](NotEnoughAvailableSlotsQueueError.md#stacktracelimit)
 
 ### Methods
 
-- [captureStackTrace](ChannelFullError.md#capturestacktrace)
+- [captureStackTrace](NotEnoughAvailableSlotsQueueError.md#capturestacktrace)
 
 ## Constructors
 
 ### constructor
 
-• **new ChannelFullError**()
+• **new NotEnoughAvailableSlotsQueueError**(`requestedItems`, `availableSlots`)
+
+#### Parameters
+
+| Name | Type |
+| :------ | :------ |
+| `requestedItems` | `number` |
+| `availableSlots` | `number` |
 
 #### Overrides
 
@@ -42,9 +50,19 @@ Error.constructor
 
 #### Defined in
 
-[src/lib/index.ts:14](https://github.com/cdellacqua/channel.js/blob/main/src/lib/index.ts#L14)
+node_modules/reactive-circular-queue/dist/index.d.ts:156
 
 ## Properties
+
+### availableSlots
+
+• **availableSlots**: `number`
+
+#### Defined in
+
+node_modules/reactive-circular-queue/dist/index.d.ts:155
+
+___
 
 ### cause
 
@@ -85,6 +103,16 @@ Error.name
 #### Defined in
 
 node_modules/typescript/lib/lib.es5.d.ts:1053
+
+___
+
+### requestedItems
+
+• **requestedItems**: `number`
+
+#### Defined in
+
+node_modules/reactive-circular-queue/dist/index.d.ts:154
 
 ___
 

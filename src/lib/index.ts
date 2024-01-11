@@ -1,6 +1,8 @@
 import {makeCircularQueue, ReadonlyCircularQueue} from 'reactive-circular-queue';
 import {makeDerivedStore, makeStore, ReadonlyStore} from 'universal-stores';
 
+export * from 'reactive-circular-queue';
+
 const noop = () => undefined as void;
 
 /**
