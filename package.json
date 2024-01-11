@@ -75,7 +75,7 @@
 	},
 	"dependencies": {
 		"@cdellacqua/sleep": "^6.0.1",
-		"reactive-circular-queue": "^2.1.0",
-		"universal-stores": "^2.3.0"
+		"reactive-circular-queue": "^2.1.1",
+		"universal-stores": "^2.3.1"
 	}
 }
