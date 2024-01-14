@@ -2,7 +2,7 @@
 	"name": "reactive-channel",
 	"camelCaseName": "reactiveChannel",
 	"description": "A simple yet powerful abstraction that enables communication between asynchronous tasks.",
-	"version": "3.1.1",
+	"version": "3.1.2",
 	"type": "module",
 	"types": "dist/index.d.ts",
 	"main": "dist/index.cjs",
