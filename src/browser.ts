@@ -1,5 +1,5 @@
 import './style.css';
-import {makeChannel} from './lib';
+import {makeChannel} from './lib/index.js';
 
 const txForm = document.getElementById('tx-form') as HTMLDivElement;
 const txInput = document.getElementById('tx-input') as HTMLInputElement;
@@ -30,7 +30,7 @@ rxForm.addEventListener('submit', (e) => {
 		timeoutId = undefined;
 	}
 	rxSubmitButton.textContent = 'waiting for data...';
-	rx.recv()
+	void rx.recv()
 		.then((data) => {
 			rxSubmitButton.textContent = `consumed "${data}"`;
 		})

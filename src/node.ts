@@ -1,9 +1,9 @@
-import {makeChannel} from './lib';
+import {makeChannel} from './lib/index.js';
 
 // Payment processing channel
 const {rx, tx} = makeChannel<{amount: string; currency: 'USD' | 'EUR'}>();
 
-(async () => {
+void (async () => {
 	while (!rx.closed$.content()) {
 		const {amount, currency} = await rx.recv();
 		console.log(`processing a payment for ${amount.padStart(5, ' ')} ${currency}`);

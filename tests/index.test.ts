@@ -1,13 +1,9 @@
-import chai, {expect} from 'chai';
-import chaiAsPromises from 'chai-as-promised';
 import {
 	ChannelClosedError,
 	ChannelFullError,
 	ChannelTooManyPendingRecvError,
 	makeChannel,
-} from '../src/lib/index';
-
-chai.use(chaiAsPromises);
+} from '../src/lib/index.js';
 
 function sleep(ms: number) {
 	return new Promise((res) => setTimeout(res, ms));
@@ -17,26 +13,26 @@ describe('channel', () => {
 	it('tests a simple use case of send + recv', async () => {
 		const {tx, rx} = makeChannel<number>({capacity: 1});
 		tx.send(1);
-		await expect(rx.recv()).to.eventually.eq(1);
+		await expect(rx.recv()).resolves.toBe(1);
 	});
 	it('tests sendWait', async () => {
 		const {tx, rx} = makeChannel<number>({capacity: 1});
 		await Promise.all([
-			expect(tx.sendWait(1)).to.be.fulfilled,
-			expect(rx.recv()).to.eventually.eq(1),
+			expect(tx.sendWait(1)).resolves.toBeUndefined(),
+			expect(rx.recv()).resolves.toBe(1),
 		]);
 	});
 	it('tests sendWait with a full channel', async () => {
 		const {tx, rx} = makeChannel<number>({capacity: 1});
 		tx.send(1);
-		await expect(tx.sendWait(1)).to.be.rejected;
-		await expect(rx.recv()).to.eventually.eq(1);
+		await expect(tx.sendWait(1)).rejects.toBeDefined();
+		await expect(rx.recv()).resolves.toBe(1);
 	});
 	it('tests sendWait with a full channel, followed by a recv + send', async () => {
 		const {tx, rx} = makeChannel<number>({capacity: 1});
 		tx.send(1);
-		await expect(tx.sendWait(1)).to.be.rejected;
-		await expect(rx.recv()).to.eventually.eq(1);
+		await expect(tx.sendWait(1)).rejects.toBeDefined();
+		await expect(rx.recv()).resolves.toBe(1);
 		expect(() => tx.send(1)).not.to.throw();
 	});
 	it('tests canRead/canWrite stores', async () => {
@@ -60,11 +56,11 @@ describe('channel', () => {
 		expect(rx.pendingRecvPromises$.content()).to.eq(0);
 		const recvPromise = rx.recv();
 		expect(rx.pendingRecvPromises$.content()).to.eq(1);
-		await expect(rx.recv()).to.eventually.be.rejectedWith(ChannelTooManyPendingRecvError);
+		await expect(rx.recv()).rejects.toBeInstanceOf(ChannelTooManyPendingRecvError);
 		expect(rx.pendingRecvPromises$.content()).to.eq(1);
 		tx.send(1);
 		expect(rx.pendingRecvPromises$.content()).to.eq(0);
-		await expect(recvPromise).to.eventually.be.fulfilled;
+		await expect(recvPromise).resolves.toBe(1);
 	});
 	it('tests closed store', async () => {
 		const {tx, rx} = makeChannel<number>({capacity: 1});
@@ -118,7 +114,7 @@ describe('channel', () => {
 	it('tests a simple queue', async () => {
 		const {tx, rx} = makeChannel<number>({capacity: 3});
 		const receivedValues: number[] = [];
-		(async () => {
+		void (async () => {
 			let exit = false;
 			while (!exit) {
 				const receivedValue = await rx.recv();
@@ -148,8 +144,8 @@ describe('channel', () => {
 		tx.send(1);
 		tx.close();
 		expect(() => tx.send(2)).to.throw(ChannelClosedError);
-		await expect(tx.sendWait(2)).to.eventually.be.rejectedWith(ChannelClosedError);
-		await expect(recvPromise).to.eventually.be.rejectedWith(ChannelClosedError);
+		await expect(tx.sendWait(2)).rejects.toBeInstanceOf(ChannelClosedError);
+		await expect(recvPromise).rejects.toBeInstanceOf(ChannelClosedError);
 	});
 	it('tests a simple queue and closes the channel while transmitting data', async () => {
 		const {tx, rx} = makeChannel<number>({capacity: 3});
@@ -165,29 +161,27 @@ describe('channel', () => {
 		})();
 		tx.send(1);
 		await Promise.all([
-			expect(tx.sendWait(2)).to.eventually.be.rejectedWith(ChannelClosedError),
+			expect(tx.sendWait(2)).rejects.toBeInstanceOf(ChannelClosedError),
 			sleep(1).then(() => tx.close()),
 		]);
-		await expect(recvPromise).to.eventually.be.rejectedWith(ChannelClosedError);
+		await expect(recvPromise).rejects.toBeInstanceOf(ChannelClosedError);
 	});
 	it('throttle a channel', async () => {
 		const {tx, rx} = makeChannel<number>();
 		const throttlePromise = Promise.all([
 			(async () => {
-				// eslint-disable-next-line no-constant-condition
 				while (tx.canWrite$.content()) {
 					tx.send(1);
 				}
 			})(),
 			(async () => {
-				// eslint-disable-next-line no-constant-condition
 				while (true) {
 					expect(await rx.recv()).to.eq(1);
 				}
 			})(),
 		]);
 		await sleep(50).then(() => tx.close());
-		await expect(throttlePromise).to.eventually.be.rejectedWith(ChannelClosedError);
+		await expect(throttlePromise).rejects.toBeInstanceOf(ChannelClosedError);
 	});
 	it('tests recv with timeout', async () => {
 		const {rx, tx} = makeChannel<string>();
@@ -196,24 +190,22 @@ describe('channel', () => {
 	});
 	it('tests sendWait with timeout', async () => {
 		const {rx, tx} = makeChannel<string>();
-		await expect(
-			tx.sendWait('hello!', {signal: AbortSignal.timeout(5)}),
-		).to.eventually.be.rejectedWith(DOMException);
+		await expect(tx.sendWait('hello!', {signal: AbortSignal.timeout(5)})).rejects.toBeInstanceOf(DOMException);
 		await expect(
 			Promise.all([
 				sleep(10).then(() => rx.recv()),
 				tx.sendWait('hello!', {signal: AbortSignal.timeout(20)}),
 			]),
-		).to.eventually.be.fulfilled;
+		).resolves.toBeDefined();
 	});
 	it('tests too many pending recv', async () => {
 		const {rx} = makeChannel<string>({maxConcurrentPendingRecv: 2});
 		const recv1Promise = rx.recv();
 		const recv2Promise = rx.recv();
-		await expect(rx.recv()).to.eventually.be.rejectedWith(ChannelTooManyPendingRecvError);
+		await expect(rx.recv()).rejects.toBeInstanceOf(ChannelTooManyPendingRecvError);
 		rx.close();
-		await expect(recv1Promise).to.eventually.be.rejectedWith(ChannelClosedError);
-		await expect(recv2Promise).to.eventually.be.rejectedWith(ChannelClosedError);
+		await expect(recv1Promise).rejects.toBeInstanceOf(ChannelClosedError);
+		await expect(recv2Promise).rejects.toBeInstanceOf(ChannelClosedError);
 	});
 	it('fills a channel', async () => {
 		const {tx} = makeChannel<number>({capacity: 2});
@@ -225,7 +217,7 @@ describe('channel', () => {
 		const {rx} = makeChannel<number>({capacity: 2});
 		const abortController = new AbortController();
 		await Promise.all([
-			expect(rx.recv({signal: abortController.signal})).to.eventually.be.rejectedWith(Error),
+			expect(rx.recv({signal: abortController.signal})).rejects.toBeInstanceOf(Error),
 			sleep(10).then(() => abortController.abort(new Error())),
 		]);
 	});
@@ -233,37 +225,38 @@ describe('channel', () => {
 		const {rx, tx} = makeChannel<number>({capacity: 2});
 		const abortController = new AbortController();
 		tx.send(1);
-		await expect(rx.recv({signal: abortController.signal})).to.eventually.not.be.rejectedWith(
-			Error,
-		);
+		await expect(rx.recv({signal: abortController.signal})).resolves.toBe(1);
 	});
 	it('tests that an aborted sendWait restores the channel buffer', async () => {
 		const {rx, tx} = makeChannel<number>({capacity: 2});
 		const abortController = new AbortController();
 		const sendWaitPromise = tx.sendWait(1, {signal: abortController.signal});
+		const sendWaitExpectation = expect(sendWaitPromise).rejects.toBeInstanceOf(Error);
 		expect(rx.filledInboxSlots$.content()).to.eq(1);
 		await sleep(10);
 		expect(rx.filledInboxSlots$.content()).to.eq(1);
 		abortController.abort(new Error('abort sendWait'));
 		await sleep(1);
 		expect(rx.filledInboxSlots$.content()).to.eq(0);
-		await expect(sendWaitPromise).to.eventually.be.rejectedWith(Error);
+		await sendWaitExpectation;
 	});
 	it('tests that an aborted sendWait fulfills if recv and abort happen almost at the same time', async () => {
 		const {rx, tx} = makeChannel<number>({capacity: 2});
 		const abortController = new AbortController();
 		const sendWaitPromise = tx.sendWait(1, {signal: abortController.signal});
+		const sendWaitExpectation = expect(sendWaitPromise).resolves.toBeUndefined();
 		expect(rx.filledInboxSlots$.content()).to.eq(1);
 		await sleep(10);
 		expect(rx.filledInboxSlots$.content()).to.eq(1);
 		abortController.abort(new Error('abort sendWait'));
 		expect(await rx.recv()).to.eq(1);
-		await expect(sendWaitPromise).to.eventually.be.fulfilled;
+		await sendWaitExpectation;
 	});
 	it('tests that an aborted sendWait restore the channel buffer', async () => {
 		const {rx, tx} = makeChannel<number>({capacity: 2});
 		const abortController = new AbortController();
 		const sendWaitPromise = tx.sendWait(1, {signal: abortController.signal});
+		const sendWaitExpectation = expect(sendWaitPromise).rejects.toBeInstanceOf(Error);
 		expect(rx.filledInboxSlots$.content()).to.eq(1);
 		await sleep(10);
 		expect(rx.filledInboxSlots$.content()).to.eq(1);
@@ -275,20 +268,21 @@ describe('channel', () => {
 				recvPromise,
 				sleep(10).then(() => Promise.reject(new DOMException('', 'TimeoutError'))),
 			]),
-		).to.eventually.be.rejectedWith(DOMException);
-		await expect(sendWaitPromise).to.eventually.be.rejectedWith(Error);
+		).rejects.toBeInstanceOf(DOMException);
+		await sendWaitExpectation;
 	});
 	it('tests that an aborted recv does not consume the channel buffer', async () => {
 		const {rx, tx} = makeChannel<number>({capacity: 2});
 		const abortController = new AbortController();
 		const recvPromise = rx.recv({signal: abortController.signal});
+		const recvExpectation = expect(recvPromise).rejects.toBeInstanceOf(Error);
 		expect(rx.pendingRecvPromises$.content()).to.eq(1);
 		await sleep(10);
 		expect(rx.pendingRecvPromises$.content()).to.eq(1);
 		abortController.abort(new Error('abort sendWait'));
 		await sleep(1);
 		expect(rx.pendingRecvPromises$.content()).to.eq(0);
-		await expect(recvPromise).to.eventually.be.rejectedWith(Error);
+		await recvExpectation;
 		tx.send(1);
 		expect(rx.filledInboxSlots$.content()).to.eq(1);
 	});
@@ -297,17 +291,19 @@ describe('channel', () => {
 		const abortController = new AbortController();
 		abortController.abort();
 		const recvPromise = rx.recv({signal: abortController.signal});
+		const recvExpectation = expect(recvPromise).rejects.toBeDefined();
 		expect(rx.pendingRecvPromises$.content()).to.eq(0);
 		await sleep(10);
-		await expect(recvPromise).to.eventually.be.rejected;
+		await recvExpectation;
 	});
 	it('tests that sendWait rejects immediately if the passed signal has already been aborted', async () => {
 		const {tx} = makeChannel<number>({capacity: 2});
 		const abortController = new AbortController();
 		abortController.abort();
 		const sendPromise = tx.sendWait(0, {signal: abortController.signal});
+		const sendExpectation = expect(sendPromise).rejects.toBeDefined();
 		await sleep(10);
-		await expect(sendPromise).to.eventually.be.rejected;
+		await sendExpectation;
 	});
 	it('tests that an aborted recv tests fulfills if send and abort happen almost at the same time', async () => {
 		const {rx, tx} = makeChannel<number>({capacity: 2});
@@ -319,44 +315,39 @@ describe('channel', () => {
 		abortController.abort(new Error('abort recv'));
 		expect(rx.pendingRecvPromises$.content()).to.eq(1);
 		tx.send(1);
-		await expect(recvPromise).to.eventually.be.fulfilled;
+		await expect(recvPromise).resolves.toBe(1);
 		expect(rx.filledInboxSlots$.content()).to.eq(0);
 	});
 	it('tests a multiple producer single consumer scenario', async () => {
 		const {rx, tx} = makeChannel<number>({capacity: 20});
 		const throttlePromise = Promise.all([
 			(async () => {
-				// eslint-disable-next-line no-constant-condition
 				while (tx.canWrite$.content()) {
 					tx.send(1);
 				}
 			})(),
 			(async () => {
-				// eslint-disable-next-line no-constant-condition
 				while (tx.canWrite$.content()) {
 					tx.send(2);
 				}
 			})(),
 			(async () => {
-				// eslint-disable-next-line no-constant-condition
 				while (tx.canWrite$.content()) {
 					tx.send(3);
 				}
 			})(),
 			(async () => {
-				// eslint-disable-next-line no-constant-condition
 				while (tx.canWrite$.content()) {
 					tx.send(4);
 				}
 			})(),
 			(async () => {
-				// eslint-disable-next-line no-constant-condition
 				while (true) {
 					expect(await rx.recv()).to.be.oneOf([1, 2, 3, 4]);
 				}
 			})(),
 		]);
 		await sleep(50).then(() => tx.close());
-		await expect(throttlePromise).to.eventually.be.rejectedWith(ChannelClosedError);
+		await expect(throttlePromise).rejects.toBeInstanceOf(ChannelClosedError);
 	});
 });

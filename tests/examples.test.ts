@@ -1,8 +1,4 @@
-import chai, {expect} from 'chai';
-import chaiAsPromises from 'chai-as-promised';
-import {ChannelClosedError, makeChannel} from '../src/lib/index';
-
-chai.use(chaiAsPromises);
+import {ChannelClosedError, makeChannel} from '../src/lib/index.js';
 
 describe('examples', () => {
 	it('readme 1', async () => {
@@ -100,7 +96,7 @@ describe('examples', () => {
 			savedCb();
 			await recvPromise;
 		} catch (err) {
-			expect(err).to.contain({message: 'Action cancelled by the user'});
+			expect(err).toMatchObject({message: 'Action cancelled by the user'});
 			// ...
 		}
 	});
