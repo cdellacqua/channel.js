@@ -22,7 +22,8 @@
 		"message"
 	],
 	"repository": {
-		"url": "git+https://github.com/cdellacqua/channel.js"
+		"type": "git",
+		"url": "git+https://github.com/cdellacqua/channel.js.git"
 	},
 	"bugs": {
 		"url": "https://github.com/cdellacqua/channel.js/issues"
